@@ -33,27 +33,48 @@ app.get("/tasks", async (req, res) => {
   res.json(result.rows);
 });
 
+
+// 🟢 Add new task (with optional created_by & deadline)
 app.post("/tasks", async (req, res) => {
-  const { title, description } = req.body;
-  const result = await pool.query(
-    "INSERT INTO tasks (title, description) VALUES ($1, $2) RETURNING *",
-    [title, description]
-  );
-  res.json(result.rows[0]);
-    console.log("Task added:", res.data);
+  try {
+    const { title, description, created_by, deadline } = req.body;
+    const result = await pool.query(
+      `INSERT INTO tasks (title, description, created_by, deadline)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [title, description || null, created_by || "Anonymous", deadline || null]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Error adding task");
+  }
 });
 
+
+// 🟢 Toggle completion
 app.put("/tasks/:id", async (req, res) => {
-  const { id } = req.params;
-  const { completed } = req.body;
-  await pool.query("UPDATE tasks SET completed=$1 WHERE id=$2", [completed, id]);
-  res.sendStatus(200);
+  try {
+    const { id } = req.params;
+    const { completed } = req.body;
+    await pool.query("UPDATE tasks SET completed=$1 WHERE id=$2", [completed, id]);
+    res.sendStatus(200);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Error updating task");
+  }
 });
+
 
 app.delete("/tasks/:id", async (req, res) => {
-  const { id } = req.params;
-  await pool.query("DELETE FROM tasks WHERE id=$1", [id]);
-  res.sendStatus(200);
+  try {
+    const { id } = req.params;
+    await pool.query("DELETE FROM tasks WHERE id=$1", [id]);
+    res.sendStatus(200);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Error deleting task");
+  }
 });
 
 app.listen(3000, () => console.log("Server running on http://localhost:3000"));
